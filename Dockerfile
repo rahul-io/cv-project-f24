@@ -1,7 +1,6 @@
-### CUDA
+# Start from noetic ros 20 image
+FROM ros:noetic-ros-core
 
-# Start from cuda ubuntu 20 image
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu20.04
 
 ### ROS
 
@@ -12,15 +11,6 @@ ENV ROS_DISTRO noetic
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]
 
-# copy files
-COPY --from=osrf/ros:noetic-desktop-full / /
-
-### APT DEPENDENCIES
-
-# apt keys
-
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
-
 # apt update
 RUN apt-get update
 
@@ -28,12 +18,8 @@ RUN apt-get update
 RUN apt-get install -y \
     vim \
     git \
-    doxygen \
     openssh-server \
     libusb-dev \
-    texinfo \
-    cutecom \
-    cmake-curses-gui \
     synaptic \
     python3-pip \
     python3-termcolor \
@@ -41,9 +27,6 @@ RUN apt-get install -y \
     python3-osrf-pycommon \
     ros-noetic-ackermann-msgs \
     ros-noetic-serial \
-    ros-noetic-realsense2-camera \
-    ros-noetic-realsense2-description \
-    ros-noetic-pointcloud-to-laserscan \
     ros-noetic-ros-ign \
     ros-noetic-costmap-2d \
     ros-noetic-video-stream-opencv \
@@ -59,7 +42,7 @@ RUN apt-get install -y \
     net-tools \
     tmux
 
-RUN pip3 install timm==0.5.4 protobuf==4.25.3 easydict imageio scikit-learn urdf_parser_py
+RUN pip3 install timm==0.5.4 protobuf==4.25.3 easydict imageio urdf_parser_py
 
 ### SOFTWARE DEPENDENCIES
 
@@ -97,15 +80,6 @@ RUN wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-w
 RUN unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
 RUN echo "export LIBTORCH_PATH=/root/Software/libtorch" >> ~/.bashrc
 
-# install snopt
-WORKDIR /root/Software
-ADD Software/snopt7.2 snopt7.2
-WORKDIR /root/Software/snopt7.2
-RUN mkdir build
-WORKDIR /root/Software/snopt7.2/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release -Wno-dev
-RUN make -j $cores && sudo make install
-
 # install urdfdom
 WORKDIR /root/Software
 RUN git clone https://github.com/ros/urdfdom.git
@@ -121,28 +95,25 @@ RUN curl -sSL http://get.gazebosim.org | sh
 RUN apt-get install ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control
 
 # PAC-NMPC ML/RL Setup
-WORKDIR /root 
-ADD Software/python Projects/pacnmpc/pacnmpc_python
-RUN rm -rf /usr/lib/python3.8/site-packages/ ;
-RUN ln -s /usr/local/lib/python3.8/dist-packages /usr/lib/python3.8/site-packages
-RUN pip3 install setuptools==65.6.0
-RUN pip3 install -r /root/Projects/pacnmpc/pacnmpc_python/requirements.txt
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-RUN pip3 install -e /root/Projects/pacnmpc/pacnmpc_python/pacnmpc_rl
-RUN pip3 install -e /root/Projects/pacnmpc/pacnmpc_python/dependencies/fsrl
-WORKDIR /root
-RUN rm -rf Projects
-
-# Fix weird PCL compilation bug
-RUN sed -i '79s/.*/int count = abs (static_cast<int> (field.count));/' /usr/include/pcl-1.10/pcl/io/impl/pcd_io.hpp
+# WORKDIR /root 
+# ADD Software/python Projects/pacnmpc/pacnmpc_python
+# RUN rm -rf /usr/lib/python3.8/site-packages/ ;
+# RUN ln -s /usr/local/lib/python3.8/dist-packages /usr/lib/python3.8/site-packages
+# RUN pip3 install setuptools==65.6.0
+# RUN pip3 install -r /root/Projects/pacnmpc/pacnmpc_python/requirements.txt
+# RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# RUN pip3 install -e /root/Projects/pacnmpc/pacnmpc_python/pacnmpc_rl
+# RUN pip3 install -e /root/Projects/pacnmpc/pacnmpc_python/dependencies/fsrl
+# WORKDIR /root
+# RUN rm -rf Projects
 
 # make projects directory
 WORKDIR /root
 RUN mkdir Projects
 
 # set up aliases
-RUN echo 'alias pacnmpc-ros-cd="cd /root/Projects/pacnmpc_ws"\nalias pacnmpc-ros-build="pacnmpc-ros-cd && catkin build && source devel/setup.bash"' >> ~/.bashrc_aliases
-RUN echo 'source ~/.bashrc_aliases' >> ~/.bashrc
-ENV QT_DEBUG_PLUGINS=1
+# RUN echo 'alias pacnmpc-ros-cd="cd /root/Projects/pacnmpc_ws"\nalias pacnmpc-ros-build="pacnmpc-ros-cd && catkin build && source devel/setup.bash"' >> ~/.bashrc_aliases
+# RUN echo 'source ~/.bashrc_aliases' >> ~/.bashrc
+# ENV QT_DEBUG_PLUGINS=1
 
 WORKDIR /root

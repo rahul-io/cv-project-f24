@@ -95,17 +95,15 @@ RUN mkdir -p src && cd src && \
 
 
 ## DSO
-# Clone DSO SLAM repository (use the specific version or branch you need)
+# Clone DSO SLAM repository
 RUN cd /root/catkin_ws/src && \
-    git clone --recursive https://github.com/JakobEngel/dso.git
+    git clone --recursive https://github.com/JakobEngel/dso.git && \
+    cd dso && mkdir build && cd build && cmake .. && make -j4
 
 # Clone the dso_ros wrapper repository
 RUN cd /root/catkin_ws/src && \
     git clone --recursive https://github.com/JakobEngel/dso_ros.git
 
-## TODO: SLAM Library 3
-
-## TODO: SLAM Library 4
 
 ######################################################################################
 

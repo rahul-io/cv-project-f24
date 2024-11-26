@@ -2,104 +2,115 @@
 FROM ros:noetic-ros-core
 
 # Setup environment
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV ROS_DISTRO noetic
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV ROS_DISTRO=noetic
+ENV DEBIAN_FRONTEND=noninteractive
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]
 
-# Install essential packages
+# Add any necessary dependencies here
+# NOTE: if you need to add more dependencies, create a separate apt-get line while you are testing, so that you don't have to re-install all of these every time.
+# Once your library successfully builds, then consolidate the two apt-get lines together.
 RUN apt-get update && apt-get install -y \
-    vim git openssh-server libusb-dev synaptic python3-pip \
-    python3-termcolor python3-catkin-tools python3-osrf-pycommon \
-    ros-noetic-ackermann-msgs ros-noetic-serial ros-noetic-ros-ign \
-    ros-noetic-costmap-2d ros-noetic-video-stream-opencv xterm \
-    unzip gdb curl python3-tk mjpegtools software-properties-common \
-    libv4l-dev inetutils-ping net-tools tmux && \
+    # Basic Tools
+    vim \
+    git \
+    wget \
+    curl \
+    tmux \
+    xterm \
+    gdb \
+    unzip \
+    net-tools \
+    inetutils-ping \
+    software-properties-common \
+    # Development Tools
+    build-essential \
+    cmake \
+    python3-pip \
+    python3-dev \
+    python3-tk \
+    python3-termcolor \
+    python3-catkin-tools \
+    python3-osrf-pycommon \
+    # Libraries
+    libusb-dev \
+    libv4l-dev \
+    libeigen3-dev \
+    libboost-all-dev \
+    libepoxy-dev \
+    libopencv-dev \
+    libopencv-contrib-dev \
+    libpcl-dev \
+    libsuitesparse-dev \
+    libgflags-dev \
+    libgoogle-glog-dev \
+    libgtest-dev \
+    libyaml-cpp-dev \
+    # ROS Noetic Dependencies
+    ros-noetic-ackermann-msgs \
+    ros-noetic-serial \
+    ros-noetic-ros-ign \
+    ros-noetic-costmap-2d \
+    ros-noetic-tf2 \
+    ros-noetic-pcl-ros \
+    ros-noetic-image-transport \
+    ros-noetic-camera-info-manager \
+    ros-noetic-vision-opencv \
+    ros-noetic-rosbridge-suite \
+    ros-noetic-catkin \
+    # Miscellaneous Tools
+    mjpegtools \
+    openssh-server \
+    synaptic \
+    && rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
-RUN pip3 install timm==0.5.4 protobuf==4.25.3 easydict imageio urdf_parser_py
+# Add any necessary Python dependencies here
+RUN pip3 install --upgrade pip
+RUN pip3 install numpy scipy matplotlib opencv-python pybind11
 
-# Update cmake
-RUN apt update && \
-    apt install -y software-properties-common lsb-release && \
-    apt clean all && \
-    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
-    apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" && \
-    apt update && \
-    apt install kitware-archive-keyring && \
-    rm /etc/apt/trusted.gpg.d/kitware.gpg && \
-    apt install -y cmake
+# # Install libtorch
+# WORKDIR /root/Software
+# RUN wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcu121.zip && \
+#     unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
 
-# Upgrade Eigen
+# Install Pangolin
 WORKDIR /root/Software
-RUN git clone https://gitlab.com/libeigen/eigen.git && \
-    cd eigen && \
-    git checkout 3.4.0 && \
-    mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    make -j $(nproc) && make install && \
-    ln -s /usr/local/include/eigen3/Eigen /usr/local/include/Eigen
+RUN cd ~ && git clone --recursive https://github.com/stevenlovegrove/Pangolin.git && \
+    cd Pangolin && mkdir build && cd build && \
+    cmake .. && make -j4 && make install
+    
+# THIS is the end of dependencies. The code below is for each of the SLAM libraries.
 
-# Install libtorch
-WORKDIR /root/Software
-RUN wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcu121.zip && \
-    unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
+######################################################################################
 
-# Install URDFDOM
-WORKDIR /root/Software
-RUN git clone https://github.com/ros/urdfdom.git && \
-    cd urdfdom && mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    make -j $(nproc) && make install
-
-# Install Gazebo
-RUN curl -sSL http://get.gazebosim.org | sh && \
-    apt-get install -y ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control
-
-# Clone and build OpenCV
-WORKDIR /root/Software
-RUN git clone https://github.com/opencv/opencv.git && \
-    git clone https://github.com/opencv/opencv_contrib.git && \
-    cd opencv && git checkout 4.5.5 && \
-    cd ../opencv_contrib && git checkout 4.5.5 && \
-    cd ../opencv && mkdir build && cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release \
-          -D CMAKE_INSTALL_PREFIX=/usr/local \
-          -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
-          -D BUILD_EXAMPLES=OFF -D WITH_CUDA=OFF -D WITH_V4L=ON \
-          -D WITH_QT=ON -D WITH_OPENGL=ON .. && \
-    make -j$(nproc) && make install && ldconfig
-
-# Set OpenCV environment variables
-ENV OpenCV_DIR=/usr/local/lib/cmake/opencv4
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-
-# Clone and build ORB_SLAM2
-WORKDIR /root/Software
-RUN git clone https://github.com/raulmur/ORB_SLAM2.git && \
-    cd ORB_SLAM2 && \
-    sed -i 's/cmake .. /cmake .. -DOpenCV_DIR=\/usr\/local\/lib\/cmake\/opencv4/' build.sh && \
-    chmod +x build.sh && \
-    ./build.sh || { cat build.sh.log; exit 1; }
-
-# Clone orb_slam2_ros
-WORKDIR /root/Software
-RUN git clone https://github.com/appliedAI-Initiative/orb_slam2_ros.git && \
-    cd orb_slam2_ros/orb_slam2 && \
-    ln -s /root/Software/ORB_SLAM2/Thirdparty Thirdparty && \
-    ln -s /root/Software/ORB_SLAM2/lib lib && \
-    ln -s /root/Software/ORB_SLAM2/Vocabulary Vocabulary && \
-    cd .. && mkdir build && cd build && cmake .. && make -j$(nproc)
-
-# ROS Workspace Setup
+## ORBSLAM3
+# Install Orb_SLAM3
 WORKDIR /root/catkin_ws
-RUN mkdir -p src && \
-    ln -s /root/Software/orb_slam2_ros src/orb_slam2_ros && \
-    /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+RUN mkdir -p src && cd src && \
+    git clone https://github.com/thien94/orb_slam3_ros.git && \ 
+    cd ../ && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin build -j4"
+
+
+## DSO
+# Clone DSO SLAM repository (use the specific version or branch you need)
+RUN cd /root/catkin_ws/src && \
+    git clone --recursive https://github.com/JakobEngel/dso.git
+
+# Clone the dso_ros wrapper repository
+RUN cd /root/catkin_ws/src && \
+    git clone --recursive https://github.com/JakobEngel/dso_ros.git
+
+## TODO: SLAM Library 3
+
+## TODO: SLAM Library 4
+
+######################################################################################
 
 # Source workspace in bashrc
 RUN echo "source /root/catkin_ws/devel/setup.bash" >> ~/.bashrc
-
+    
 # Final working directory
 WORKDIR /root

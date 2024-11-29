@@ -69,7 +69,7 @@ RUN apt-get update && apt-get install -y \
 
 # Add any necessary Python dependencies here
 RUN pip3 install --upgrade pip
-RUN pip3 install numpy scipy matplotlib opencv-python pybind11
+RUN pip3 install numpy scipy matplotlib opencv-python pybind11 picamera2
 
 # # Install libtorch
 # WORKDIR /root/Software

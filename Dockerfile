@@ -60,6 +60,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-vision-opencv \
     ros-noetic-rosbridge-suite \
     ros-noetic-catkin \
+    ros-noetic-hector-trajectory-server \
     # Miscellaneous Tools
     mjpegtools \
     openssh-server \

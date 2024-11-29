@@ -51,6 +51,7 @@ def capture_continuous():
         while True:
             # Capture an image
             capture(save_dir)
+            inp = input("")
 
     except KeyboardInterrupt:
         # Stop capturing on Ctrl+C

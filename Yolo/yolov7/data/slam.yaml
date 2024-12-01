@@ -1,0 +1,9 @@
+train: Image_Dataset/images/train/
+val: Image_Dataset/images/val/
+test: Image_Dataset/images/test/
+
+# number of classes
+nc: 4
+
+# class names
+names: ["cube","triangle","circle", "arch"]

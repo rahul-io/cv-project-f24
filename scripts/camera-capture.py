@@ -1,73 +1,65 @@
 #!/usr/bin/env python3
-import os
-import argparse
+
+from cv_bridge import CvBridge
 from datetime import datetime
-import picamera
-from PIL import Image
-import rospy
+from picamera.array import PiRGBArray
 from sensor_msgs.msg import Image as ROSImage
-from cv_bridge import CvBridge 
 
+import argparse
+import cv2
+import numpy as np
+import os
+import picamera
+import rospy
+import time
 
-# Initialize the camera
-picam = picamera()
-picam.configure(picam.create_still_configuration())
+def capture_image(camera):
+    with PiRGBArray(camera) as output:
+        camera.capture(output, format="bgr")
+        return output.array
 
-# Initialize ROS components
-rospy.init_node('camera_publisher', anonymous=True)
-pub = rospy.Publisher('/camera/raw', ROSImage, queue_size=10)
-bridge = CvBridge()
-
-
-def capture_single(save_dir):
-    # Capture an image
-    image = picam.capture_array()
-    image_pil = Image.fromarray(image)
-
-    # Save the image with its own timestamped filename
-    filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"  # Format: YYYYMMDD_HHMMSS.jpg
+def capture_single(camera, save_dir):
+    image_array = capture_image(camera)
+    filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
     frame_path = os.path.join(save_dir, filename)
-    image_pil.save(frame_path)
+    cv2.imwrite(frame_path, image_array)
+    print(f"Saved single frame to {frame_path}")
 
-def capture_continuous():
-    """
-    Continuously capture images and publish them to the /camera/raw topic.
-    """
-    rate = rospy.Rate(1)
+def capture_continuous(camera):
+    rospy.init_node('camera_publisher', anonymous=True)
+    pub = rospy.Publisher('/camera/raw', ROSImage, queue_size=10)
+    bridge = CvBridge()
+    rate = rospy.Rate(1)  # 1 Hz
+
     print("Publishing frames to /camera/raw. Press Ctrl+C to stop.")
 
     try:
         while not rospy.is_shutdown():
-            image_array = picam.capture_array()
+            image_array = capture_image(camera)
             ros_image = bridge.cv2_to_imgmsg(image_array, encoding="bgr8")
             pub.publish(ros_image)
             rate.sleep()
     except rospy.ROSInterruptException:
         print("\nStopped publishing.")
-    finally:
-        picam.stop()
-
 
 def main():
     parser = argparse.ArgumentParser(description="Capture and publish images from the PiCamera.")
     parser.add_argument("-c", "--continuous", action='store_true', help="Capture and publish continuous images.")
-    parser.add_argument("-s", "--single", action='store_true', help="Capture and publish a single image.")
+    parser.add_argument("-s", "--single", action='store_true', help="Capture and save a single image.")
     args = parser.parse_args()
 
-    # Start the camera
-    picam.start()
+    camera = picamera.PiCamera()
+    camera.resolution = (1920, 1080)  # Set desired resolution
+    time.sleep(2)  # Allow the camera to warm up
 
     if args.single:
-        print("Capturing a single frame...")
-        capture_single(os.getcwd())
-        print(f"Saved single frame to {os.getcwd()}")
+        capture_single(camera, os.getcwd())
     elif args.continuous:
-        capture_continuous()
+        capture_continuous(camera)
     else:
         print("Please specify --single or --continuous mode.")
 
-    picam.stop()
-
+    camera.close()
 
 if __name__ == "__main__":
     main()

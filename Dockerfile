@@ -7,8 +7,9 @@ ENV LC_ALL=C.UTF-8
 ENV ROS_DISTRO=noetic
 ENV DEBIAN_FRONTEND=noninteractive
 ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
-
+# CMD ["bash"]
+CMD ["bash", "-c", "roscore & sleep 5 && python3 /ros_ws/image_publisher.py"]
+COPY scripts/image_publisher.py /ros_ws/image_publisher.py
 # Add any necessary dependencies here
 # NOTE: if you need to add more dependencies, create a separate apt-get line while you are testing, so that you don't have to re-install all of these every time.
 # Once your library successfully builds, then consolidate the two apt-get lines together.
@@ -67,6 +68,14 @@ RUN apt-get update && apt-get install -y \
     synaptic \
     && rm -rf /var/lib/apt/lists/* && \
     apt-get clean
+    
+RUN apt-get update && apt-get install -y \
+    ros-noetic-cv-bridge \
+    ros-noetic-rosbag \
+    ros-noetic-rviz \
+    && rm -rf /var/lib/apt/lists/*
+
+
 
 # Add any necessary Python dependencies here
 RUN pip3 install --upgrade pip
@@ -95,15 +104,15 @@ RUN mkdir -p src && cd src && \
     cd ../ && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin build -j4"
 
 
-## DSO
-# Clone DSO SLAM repository
-RUN cd /root/catkin_ws/src && \
-    git clone --recursive https://github.com/JakobEngel/dso.git && \
-    cd dso && mkdir build && cd build && cmake .. && make -j4
+# ## DSO
+# # Clone DSO SLAM repository
+# RUN cd /root/catkin_ws/src && \
+#     git clone --recursive https://github.com/JakobEngel/dso.git && \
+#     cd dso && mkdir build && cd build && cmake .. && make -j4
 
-# Clone the dso_ros wrapper repository
-RUN cd /root/catkin_ws/src && \
-    git clone --recursive https://github.com/JakobEngel/dso_ros.git
+# # Clone the dso_ros wrapper repository
+# RUN cd /root/catkin_ws/src && \
+#     git clone --recursive https://github.com/JakobEngel/dso_ros.git
 
 
 ######################################################################################
@@ -113,3 +122,5 @@ RUN echo "source /root/catkin_ws/devel/setup.bash" >> ~/.bashrc
     
 # Final working directory
 WORKDIR /root
+
+

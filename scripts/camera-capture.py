@@ -26,12 +26,13 @@ def capture_single(camera, save_dir):
     print(f"Saved single frame to {frame_path}")
 
 def capture_continuous(camera):
+    topic_name = '/camera/image_raw'
     rospy.init_node('camera_publisher', anonymous=True)
-    pub = rospy.Publisher('/camera/raw', ROSImage, queue_size=10)
+    pub = rospy.Publisher(topic_name, ROSImage, queue_size=10)
     bridge = CvBridge()
     rate = rospy.Rate(1)  # 1 Hz
 
-    print("Publishing frames to /camera/raw. Press Ctrl+C to stop.")
+    print(f"Publishing frames to {topic_name}. Press Ctrl+C to stop.")
 
     try:
         while not rospy.is_shutdown():
@@ -49,7 +50,7 @@ def main():
     args = parser.parse_args()
 
     camera = picamera.PiCamera()
-    camera.resolution = (1920, 1080)  # Set desired resolution
+    camera.resolution = (640, 360)  # Set desired resolution
     time.sleep(2)  # Allow the camera to warm up
 
     if args.single:

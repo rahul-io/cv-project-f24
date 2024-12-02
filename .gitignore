@@ -1,1 +1,9 @@
 img/
+Yolo/yolov7/Image_Dataset
+Yolo/yolov7/runs/detect/yolo_slam4
+Yolo/venv
+Yolo/yolov7/runs/detect/iphone_map
+Yolo/yolov7/runs/detect/yolo_phone
+Yolo/yolov7/phone_images
+Yolo/yolov7/iphone_map
+

@@ -6,12 +6,12 @@ import os
 
 def image_publisher():
     rospy.init_node('image_publisher', anonymous=True)
-    pub = rospy.Publisher('/camera/image_raw', Image, queue_size=10)
-    rate = rospy.Rate(10)  # Publish at 10 Hz
+    pub = rospy.Publisher('/left/image_raw', Image, queue_size=10)
+    rate = rospy.Rate(5)  # Publish at 10 Hz
     bridge = CvBridge()
 
     # Path to your image folder
-    image_folder = "/data/images"
+    image_folder = "/home/rahul/sources/map1"
     images = sorted([f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png'))])
 
     for img_name in images:
